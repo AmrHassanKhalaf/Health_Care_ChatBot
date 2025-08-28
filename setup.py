@@ -5,8 +5,6 @@ setup(
     version="0.1.0",
     auther_2="Moustafa Essam",
     author="Amr Hassan",
-    
-    
     author_email_2="elde4aismail111@gmail.com",
     author_email="amrhassankofficial@gmail.com",
     packages=find_packages(),
