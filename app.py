@@ -38,10 +38,10 @@ docsearch = PineconeVectorStore.from_existing_index(
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
 
 
-chatModel = genai.GenerativeModel("gemini-1.5-flash")
+chatModel = genai.GenerativeModel("gemini-2.5-flash")
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-chatModel = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"))
+chatModel = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"))
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
