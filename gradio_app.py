@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 from langchain_google_genai import ChatGoogleGenerativeAI
 from src.prompt import system_prompt
 
@@ -18,17 +18,26 @@ os.environ["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY", "")
 
 embeddings = download_hugging_face_embeddings()
 docsearch = PineconeVectorStore.from_existing_index(
-    index_name="medical-chatbot",
+    index_name="chatbotpremarital",
     embedding=embeddings
 )
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 chatModel = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
+
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     ("human", "{input}"),
 ])
-question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+rag_chain = (
+    {"context": retriever | format_docs, "input": RunnablePassthrough()}
+    | prompt
+    | chatModel
+    | StrOutputParser()
+)
 
 
 
@@ -54,13 +63,11 @@ def chatbot_fn(user_message, chat_history, state):
     conversation_context = build_conversation_context(state, max_turns=12)
     combined_input = f"{conversation_context}\n\nUser: {user_message}\nAssistant: Continue the conversation, answer the user's question, and use the retrieved documents as needed." if conversation_context else user_message
     try:
-        result = rag_chain.invoke({"input": combined_input})
-        assistant_reply = result.get("answer") if isinstance(result, dict) else str(result)
-        if not assistant_reply and isinstance(result, dict):
-            assistant_reply = result.get("output_text") or result.get("text") or str(result)
+        result = rag_chain.invoke(combined_input)
+        assistant_reply = result if isinstance(result, str) else str(result)
     except Exception as e:
         print("Error in chatbot_fn:", e, file=sys.stderr)
-        assistant_reply = "Logs"
+        assistant_reply = "عذراً، حدث خطأ في معالجة السؤال. يرجى المحاولة لاحقاً."
     chat_history.append({"role": "user", "content": user_message})
     chat_history.append({"role": "assistant", "content": assistant_reply})
     state.append((user_message, assistant_reply))
@@ -78,7 +85,7 @@ def reset_chat():
 
 with gr.Blocks() as demo:
     gr.Markdown("# Health_Care_ChatBot")
-    chatbot = gr.Chatbot(label="Health_Care_ChatBot", type="messages", value=[])
+    chatbot = gr.Chatbot(label="Health_Care_ChatBot", value=[])
     msg = gr.Textbox(show_label=False, placeholder="Enter")
     state = gr.State([])
     submit = msg.submit(chatbot_fn, inputs=[msg, chatbot, state], outputs=[chatbot, state])
