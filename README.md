@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/readme-banner.jpg" alt="Healthcare RAG chatbot project overview" width="100%" />
+</p>
+
 # Health Care ChatBot
 
 An educational, retrieval-augmented chatbot for **pre-marital health awareness**. The application retrieves relevant passages from a curated medical PDF collection in Pinecone, then uses Google Gemini to produce short, respectful answers about premarital testing, genetic counseling, reproductive-health awareness, and preparing for marriage.
